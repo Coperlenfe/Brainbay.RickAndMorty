@@ -1,0 +1,284 @@
+﻿@page "/characters"
+@inject HttpClient Http
+
+<h3>Alive Character List</h3>
+
+<div style="margin-bottom: 10px;">
+    <input type="text" placeholder="Search by name..." @bind="searchText" style="padding: 5px; width: 200px;" />
+
+    <select @bind="selectedSpecies" style="margin-left: 10px; padding: 5px;">
+        <option value="">All Species</option>
+        @foreach (var sp in distinctSpecies)
+        {
+            <option value="@sp">@sp</option>
+        }
+    </select>
+
+    <select @bind="selectedPlanet" style="margin-left: 10px; padding: 5px;">
+        <option value="">All Planets</option>
+        @foreach (var planet in distinctPlanets)
+        {
+            <option value="@planet">@planet</option>
+        }
+    </select>
+
+    <button @onclick="SyncCharactersAsync" disabled="@isSyncing" style="margin-left: 10px;">
+        @(isSyncing ? "Syncing..." : "Sync Characters")
+    </button>
+</div>
+
+<p style="font-style: italic; color: gray">
+    Data source: @(isFromDatabase ? "Database" : "External API")
+</p>
+
+@if (isLoading)
+{
+    <p>Loading characters...</p>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <p style="color:red">@errorMessage</p>
+}
+else if (filteredCharacters?.Any() == true)
+{
+    <ul style="list-style-type: none; padding: 0">
+        @foreach (var character in filteredCharacters)
+        {
+            <li style="margin-bottom: 15px; padding: 10px; border-bottom: 1px solid #ccc;">
+                <div @onclick="() => ToggleAccordion(character.Id)" style="cursor: pointer;">
+                    <strong>@character.Name</strong> - <em>@character.Status</em> - @character.Species
+                    <br />
+                    <img src="@character.Image" alt="@character.Name" width="100" />
+                </div>
+
+                @if (expandedCharacterIds.Contains(character.Id))
+                {
+                    <div style="margin-top: 10px; margin-left: 20px;">
+                        @if (!string.IsNullOrWhiteSpace(character.Type))
+                        {
+                            <p><strong>Type:</strong> @character.Type</p>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(character.Gender))
+                        {
+                            <p><strong>Gender:</strong> @character.Gender</p>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(character.Origin?.Name))
+                        {
+                            <p><strong>Origin:</strong> @character.Origin.Name</p>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(character.Location?.Name))
+                        {
+                            <p><strong>Location:</strong> @character.Location.Name</p>
+                        }
+                        @if (character.Episode?.Any() == true)
+                        {
+                            <p>
+                                <strong>Episodes:</strong>
+                                <button @onclick="async (e) => await ToggleEpisodeDetails(character.Id)"
+                                        style="background:none; border:none; color:blue; text-decoration:underline; cursor:pointer;">
+                                    @(character.Episode.Count) episode(s)
+                                </button>
+                            </p>
+
+                            @if (expandedEpisodeDetails.TryGetValue(character.Id, out var episodes))
+                            {
+                                <ul style="margin-left: 15px; font-style: italic;">
+                                    @foreach (var ep in episodes)
+                                    {
+                                        <li>@ep</li>
+                                    }
+                                </ul>
+                            }
+                        }
+                        <p><strong>Created:</strong> @character.Created.ToShortDateString()</p>
+                    </div>
+                }
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p style="color: orange">No alive characters found. You may try syncing again.</p>
+}
+
+@code {
+    private List<Character>? characters;
+    private List<Character> filteredCharacters = new();
+    private List<string> distinctSpecies = new();
+    private List<string> distinctPlanets = new();
+    private HashSet<int> expandedCharacterIds = new();
+    private Dictionary<int, List<string>> expandedEpisodeDetails = new();
+
+    private string? errorMessage;
+    private bool isLoading = true;
+    private bool isSyncing = false;
+    private bool isFromDatabase = true;
+
+    private string searchText = string.Empty;
+    private string selectedSpecies = string.Empty;
+    private string selectedPlanet = string.Empty;
+
+    protected override async Task OnInitializedAsync() => await LoadCharactersAsync();
+
+    private async Task LoadCharactersAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "api/Character");
+            request.Headers.Add("X-User", "testuser");
+
+            var response = await Http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                if (response.Headers.TryGetValues("from-database", out var source))
+                {
+                    isFromDatabase = source.FirstOrDefault()?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
+                }
+
+                characters = await response.Content.ReadFromJsonAsync<List<Character>>() ?? new();
+                distinctSpecies = characters.Select(c => c.Species).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(x => x).ToList();
+                distinctPlanets = characters.Select(c => c.Origin?.Name).Where(p => !string.IsNullOrWhiteSpace(p)).Distinct().OrderBy(p => p).ToList();
+
+                ApplyFilters();
+            }
+            else
+            {
+                errorMessage = $"API Error: {(int)response.StatusCode} - {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Exception: {ex.Message}";
+        }
+        finally { isLoading = false; }
+    }
+
+    private async Task SyncCharactersAsync()
+    {
+        isSyncing = true;
+        errorMessage = null;
+        try
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, "api/Character/sync");
+            request.Headers.Add("X-User", "testuser");
+
+            var response = await Http.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = $"Sync Error: {(int)response.StatusCode} - {response.ReasonPhrase}";
+                return;
+            }
+
+            await LoadCharactersAsync();
+        }
+        catch (Exception ex) { errorMessage = $"Sync Exception: {ex.Message}"; }
+        finally { isSyncing = false; }
+    }
+
+    private void ApplyFilters()
+    {
+        if (characters == null)
+        {
+            filteredCharacters = new();
+            return;
+        }
+
+        filteredCharacters = characters
+            .Where(c =>
+                (string.IsNullOrWhiteSpace(searchText) || c.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)) &&
+                (string.IsNullOrWhiteSpace(selectedSpecies) || c.Species == selectedSpecies) &&
+                (string.IsNullOrWhiteSpace(selectedPlanet) || c.Origin?.Name == selectedPlanet))
+            .ToList();
+    }
+
+    private void ToggleAccordion(int id)
+    {
+        if (expandedCharacterIds.Contains(id))
+            expandedCharacterIds.Remove(id);
+        else
+            expandedCharacterIds.Add(id);
+    }
+
+    private async Task ToggleEpisodeDetails(int characterId)
+    {
+        if (expandedEpisodeDetails.ContainsKey(characterId))
+        {
+            expandedEpisodeDetails.Remove(characterId);
+        }
+        else
+        {
+            var character = characters?.FirstOrDefault(c => c.Id == characterId);
+            if (character?.Episode != null)
+            {
+                var names = new List<string>();
+                foreach (var epUrl in character.Episode)
+                {
+                    try
+                    {
+                        var ep = await Http.GetFromJsonAsync<Episode>(epUrl);
+                        if (ep != null) names.Add($"{ep.EpisodeCode} - {ep.Name}");
+                    }
+                    catch { names.Add("Unknown episode"); }
+                }
+                expandedEpisodeDetails[characterId] = names;
+            }
+        }
+    }
+
+    private string SearchText
+    {
+        get => searchText;
+        set { searchText = value; ApplyFilters(); }
+    }
+
+    private string SelectedSpecies
+    {
+        get => selectedSpecies;
+        set { selectedSpecies = value; ApplyFilters(); }
+    }
+
+    private string SelectedPlanet
+    {
+        get => selectedPlanet;
+        set { selectedPlanet = value; ApplyFilters(); }
+    }
+
+    public class Character
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string Species { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Gender { get; set; } = string.Empty;
+        public CharacterLocation Origin { get; set; } = new();
+        public CharacterLocation Location { get; set; } = new();
+        public string Image { get; set; } = string.Empty;
+        public List<string> Episode { get; set; } = new();
+        public string Url { get; set; } = string.Empty;
+        public DateTime Created { get; set; }
+    }
+
+    public class CharacterLocation
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+    }
+
+    public class Episode
+    {
+        public string Name { get; set; } = string.Empty;
+        public string EpisodeCode { get; set; } = string.Empty;
+
+        [System.Text.Json.Serialization.JsonPropertyName("episode")]
+        public string ApiCode
+        {
+            get => EpisodeCode;
+            set => EpisodeCode = value;
+        }
+    }
+}
