@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.35122.118
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Brainbay.ConsoleApp", "..\Brainbay.ConsoleApp\Brainbay.ConsoleApp.csproj", "{7DD571AD-BCB2-47BD-A340-F1055531D37E}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Brainbay.WebApp", "..\Brainbay.WebApp\Brainbay.WebApp.csproj", "{9DAEE129-3FA0-4B7C-9211-B9845749000F}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Brainbay.Domain", "..\Brainbay.Domain\Brainbay.Domain.csproj", "{D80D1560-F402-4837-A270-C9900DC9D3AE}"
@@ -27,18 +25,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7DD571AD-BCB2-47BD-A340-F1055531D37E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7DD571AD-BCB2-47BD-A340-F1055531D37E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7DD571AD-BCB2-47BD-A340-F1055531D37E}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{7DD571AD-BCB2-47BD-A340-F1055531D37E}.Debug|x64.Build.0 = Debug|Any CPU
-		{7DD571AD-BCB2-47BD-A340-F1055531D37E}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{7DD571AD-BCB2-47BD-A340-F1055531D37E}.Debug|x86.Build.0 = Debug|Any CPU
-		{7DD571AD-BCB2-47BD-A340-F1055531D37E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7DD571AD-BCB2-47BD-A340-F1055531D37E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7DD571AD-BCB2-47BD-A340-F1055531D37E}.Release|x64.ActiveCfg = Release|Any CPU
-		{7DD571AD-BCB2-47BD-A340-F1055531D37E}.Release|x64.Build.0 = Release|Any CPU
-		{7DD571AD-BCB2-47BD-A340-F1055531D37E}.Release|x86.ActiveCfg = Release|Any CPU
-		{7DD571AD-BCB2-47BD-A340-F1055531D37E}.Release|x86.Build.0 = Release|Any CPU
 		{9DAEE129-3FA0-4B7C-9211-B9845749000F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9DAEE129-3FA0-4B7C-9211-B9845749000F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9DAEE129-3FA0-4B7C-9211-B9845749000F}.Debug|x64.ActiveCfg = Debug|Any CPU
